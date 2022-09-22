@@ -11,7 +11,7 @@ class JettyServerTest {
     @Test
     void verifyServer() throws Exception {
         var port = ThreadLocalRandom.current().nextInt(10000, 60000);
-        var server = JettyServer.setupServer(port);
+        var server = JettyServer.setupServer(port, true);
         assertNotNull(server, "server should not be null");
         server.start();
         server.stop();

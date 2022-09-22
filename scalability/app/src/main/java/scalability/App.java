@@ -3,21 +3,63 @@
  */
 package scalability;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+
 public class App {
 
     public static void main(String[] args) throws Exception {
-        System.out.print("Starting application on 8080...");
+        System.out.print("Starting application on 8081...");
 
-        final var server = JettyServer.setupServer(8081);
+        final var server = JettyServer.setupServer(8081, true);
 
-        // Add our simple handler
-        server.setHandler(new SimpleHandler());
-
+        // Start the service
         server.start();
-
         System.out.println("started!");
+
+        // Setup our scenario
+        chooseScenario(server);
+
+        // Join the main thread to it, blocking until interrupted
         server.join();
 
         System.out.println("See you next time!");
+    }
+
+    public static void chooseScenario(Server server) throws IOException {
+        System.out.println("\n\n");
+        System.out.println("1. Simple");
+        System.out.println("2. Async");
+        System.out.println("3. Non-Blocking");
+        System.out.println("4. Load Shedding");
+        System.out.println("5. Long Tail\n");
+
+        System.out.print("Choose a scenario: ");
+        var response = new BufferedReader(new InputStreamReader(System.in)).readLine();
+        var collection = (HandlerCollection) server.getHandler();
+
+        if (response != null && response.matches("\\d+")) {
+            switch (Integer.parseInt(response)) {
+                case 2:
+                    collection.addHandler(new AsyncHandler());
+                    return;
+                case 3:
+                    return;
+                case 4:
+                    collection.addHandler(new LoadSheddingHandler());
+                    return;
+                case 5:
+                    collection.addHandler(new LongTailHandler());
+                    return;
+                default:
+                    collection.addHandler(new SimpleHandler());
+                    return;
+            }
+        }
+
+        collection.addHandler(new SimpleHandler());
     }
 }

@@ -5,7 +5,8 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.ConnectionFactory;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 /**
  * Helper class for creating servers
@@ -19,10 +20,10 @@ public class JettyServer {
      * 
      * @return A new {@link Server} bound to the given port
      */
-    public static final Server setupServer(int port) {
+    public static final Server setupServer(int port, boolean enableHttp2) throws Exception {
 
         // Create a server
-        final var server = new Server();
+        final var server = new Server(new QueuedThreadPool(20));
         server.setStopAtShutdown(true);
         server.setDumpBeforeStop(false);
         server.setDumpAfterStart(false);
@@ -37,17 +38,20 @@ public class JettyServer {
         httpConfiguration.setSendDateHeader(true);
         httpConfiguration.setSendXPoweredBy(false);
 
+        var http11 = new HttpConnectionFactory(httpConfiguration);
+        var http2 = new HTTP2CServerConnectionFactory(httpConfiguration);
         // Add HTTP protocols
-        var connector = new ServerConnector(
-            server,
-            new ConnectionFactory[] {new HttpConnectionFactory(httpConfiguration),
-                new HTTP2CServerConnectionFactory(httpConfiguration)});
+        var connector = enableHttp2 ? new ServerConnector(server, http2, http11)
+            : new ServerConnector(server, http11);
 
         // Setup the server connector
         connector.setPort(8081);
         connector.setReuseAddress(true);
-        connector.setIdleTimeout(1000);
+        connector.setIdleTimeout(10000);
         server.addConnector(connector);
+
+        // Add a collection for handlers that can be modified at runtime
+        server.setHandler(new HandlerCollection(true));
 
         return server;
     }

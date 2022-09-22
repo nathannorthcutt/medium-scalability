@@ -23,6 +23,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server
     implementation 'org.eclipse.jetty:jetty-server:11.+'
     implementation 'org.eclipse.jetty:jetty-alpn-server:11.+'
+    implementation 'org.eclipse.jetty:jetty-alpn-java-server:11.+'
     implementation 'org.eclipse.jetty.http2:http2-server:11.+'
     implementation 'org.eclipse.jetty.alpn:alpn-api:1.+'
 }
@@ -30,6 +31,21 @@ dependencies {
 application {
     // Define the main class for the application.
     mainClass = 'scalability.App'
+}
+
+task copyToLib( type: Copy ) {
+    into "$buildDir/libs/lib"
+    from configurations.runtimeClasspath
+}
+
+jar {
+    dependsOn copyToLib
+    baseName = "scalability"
+    archiveName = "scalability.jar"
+    manifest {
+        attributes 'Main-Class': 'scalability.App',
+            'Class-Path': project.configurations.runtimeClasspath.files.collect { "lib/$it.name" }.join(' ')
+    }
 }
 
 tasks.named('test') {
